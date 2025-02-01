@@ -3,7 +3,7 @@ from CartesianCoords import CartesianCoords
 import math
 import Global
 
-class GeoCentricCoords:
+class GeodeticCoords:
     def __init__(self, phi, lamda):
         self.phi = phi
         self.lamda = lamda 

@@ -3,7 +3,8 @@ from Satellite import Satellite
 from Receiver import Receiver
 
 
-r = Receiver()
+r = Receiver(30)
 
-r.truePosition.print()
-r.truePosition.getAsCartesianCoords().print()
+for i in range(30):
+    r.truePosition.print()
+    r.step()

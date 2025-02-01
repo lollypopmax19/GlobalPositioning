@@ -17,9 +17,8 @@ for data in satellite_data:
     orbit = Orbit(data["a"] + Global.a_earth, data["e"], data["i"], data["bigOmega"], data["smallOmega"], data["theta"])
     satellites.append(Satellite(orbit))
 
-deltaT = 10
 simulation_duration = 100000 
-time_steps = simulation_duration // deltaT
+time_steps = simulation_duration // Global.deltaT
 
 fig = plt.figure(figsize=(10, 10))
 ax = fig.add_subplot(111, projection='3d')
@@ -39,7 +38,7 @@ satellite_positions = {i: [] for i in range(len(satellites))}
 
 for t in range(time_steps):
     for i, satellite in enumerate(satellites):
-        satellite.updatePosition(deltaT)
+        satellite.updatePosition(Global.deltaT)
         x= satellite.getCartesians().x
         y= satellite.getCartesians().y
         z= satellite.getCartesians().z
