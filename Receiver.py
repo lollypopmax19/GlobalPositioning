@@ -35,7 +35,5 @@ class Receiver:
         point1 = geodesic(kilometers=self.velocity/1000.0).destination(point0, destination)
         self.truePosition.phi = point1.latitude
         self.truePosition.lamda = point1.longitude
-        self.counter = self.clamp(self.counter + 1, 0, 3)
+        self.counter  = (self.counter + 1) % 4
 
-    def clamp(self, value, min_value, max_value):
-        return max(min(value, max_value), min_value)
