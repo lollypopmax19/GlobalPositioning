@@ -32,7 +32,7 @@ class Receiver:
             destination = 90
 
         point0 = Point(self.truePosition.phi, self.truePosition.lamda)
-        point1 = geodesic(kilometers=self.velocity/1000.0).destination(point0, destination)
+        point1 = geodesic(kilometers=self.velocity/1000.0 * Global.deltaT).destination(point0, destination)
         self.truePosition.phi = point1.latitude
         self.truePosition.lamda = point1.longitude
         self.counter  = (self.counter + 1) % 4
