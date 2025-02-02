@@ -10,6 +10,8 @@ import Global
 import Satellite
 import math
 import itertools
+from pyproj import Proj, Transformer
+
 
 class Receiver:
     counter = 0
@@ -33,7 +35,6 @@ class Receiver:
     def run(self):
         while self.passedTime < Global.evaluationTime:
             #{
-                #estimate position with satellites {iterative least square}
                 #filtering : kalman small gdop and particle for huge gdop
                 #updating self.estimatedPosition
             #}
@@ -46,21 +47,73 @@ class Receiver:
             combination = self.gdopEvaluation(fData)
             signals = self.getSimulatedSignals(combination)
 
-            print(signals)
+            satPositionArary = self.extractSatPositionArray(signals)
+            satDistanceArray = self.extractSatDistanceArray(signals)
 
+            self.estimatedPosition = self.trilateration_3d(satPositionArary, satDistanceArray)
+            print("Estimated: " + str(self.estimatedPosition))
+            self.truePosition.getAsCartesianCoords().print()
+            arr = np.array([self.truePosition.getAsCartesianCoords().x, self.truePosition.getAsCartesianCoords().y, self.truePosition.getAsCartesianCoords().z])
+            error = np.linalg.norm(self.estimatedPosition - arr)
+            print(error)
             self.step()
             self.stepSatellites()
             self.passedTime += Global.deltaT
+
+    def extractSatPositionArray(self, signals):
+        array = []
+        for s in signals:
+            array.append(np.array([s[0].x, s[0].y, s[0].z]))
+        return array
+
+    def extractSatDistanceArray(self, signals):
+        array = []
+        for s in signals:
+            array.append(np.array(s[1]))
+        return array
 
     def getSimulatedSignals(self, comb):
         signalDataSet = []
         for sat in comb:
             noise = self.getSatelliteSpecificNoise(sat[1])
             realDist = self.getRealDistance(sat[0])
-            estimatedDist = realDist + noise
+            estimatedDist = realDist + 0.1* noise
             signalDataSet.append([sat[0], estimatedDist])
         return signalDataSet
-    
+
+
+    def trilateration_3d(self, satellites, distances, max_iter=20000, tol=1e-12):
+        satellites = np.asarray(satellites)
+        distances = np.asarray(distances)
+
+        if len(satellites) < 4:
+            raise ValueError("More than 4 satellites required")
+
+        mean_cartesian = np.array([self.truePosition.getAsCartesianCoords().x, self.truePosition.getAsCartesianCoords().y, self.truePosition.getAsCartesianCoords().z]) 
+
+        transformer = Transformer.from_crs("EPSG:4978", "EPSG:4326", always_xy=True) 
+        lon, lat, _ = transformer.transform(mean_cartesian[0], mean_cartesian[1], mean_cartesian[2])
+
+        transformer_back = Transformer.from_crs("EPSG:4326", "EPSG:4978", always_xy=True) 
+        receiver = np.array(transformer_back.transform(lon, lat, 0))  
+
+        for _ in range(max_iter):
+            R_i = np.linalg.norm(satellites - receiver, axis=1)
+            residuals = distances - R_i
+            H = np.zeros((len(satellites), 3))
+            for i in range(len(satellites)):
+                if R_i[i] < 1e-6:
+                    raise ValueError(f"Numerical issues can occur")
+                H[i, :] = (receiver - satellites[i]) / R_i[i]
+            delta = np.linalg.lstsq(H, residuals, rcond=None)[0]
+            receiver += delta
+            if np.linalg.norm(delta) < tol:
+                break
+        else:
+            print("Max Iterations!")
+        return receiver
+
+
     def getRealDistance(self, coords):
         rx = self.truePosition.getAsCartesianCoords().x
         ry = self.truePosition.getAsCartesianCoords().y  
@@ -74,7 +127,7 @@ class Receiver:
 
     def gdopEvaluation(self, fData):
         bestSatellitePositions = [[], float('inf')]
-        for r in range(4, 8):
+        for r in range(6, 8):
             for combination in itertools.combinations(fData, r):
                 matrix = self.getGeometryMatrix(combination)
                 gdop = self.getGDOP(matrix)
@@ -148,7 +201,7 @@ class Receiver:
             destination = 90
 
         point0 = Point(self.truePosition.phi, self.truePosition.lamda)
-        point1 = geodesic(kilometers=self.velocity/1000.0 * Global.deltaT).destination(point0, destination)
+        point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, destination)
         self.truePosition.phi = point1.latitude
         self.truePosition.lamda = point1.longitude
         self.distance = (self.distance + self.velocity * Global.deltaT)
