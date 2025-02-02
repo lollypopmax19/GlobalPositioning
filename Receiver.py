@@ -9,6 +9,7 @@ import numpy as np
 import Global
 import Satellite
 import math
+import itertools
 
 class Receiver:
     counter = 0
@@ -32,8 +33,6 @@ class Receiver:
     def run(self):
         while self.passedTime < Global.evaluationTime:
             #{
-                #gdop evalutation
-                #calc satellite specific noise
                 #estimate position with satellites {iterative least square}
                 #filtering : kalman small gdop and particle for huge gdop
                 #updating self.estimatedPosition
@@ -41,26 +40,64 @@ class Receiver:
             sData = self.getSatellitesData()
             fData = self.filterSatelliteDate(sData)
 
+            if len(fData)<4:
+                raise Exception("Bad Data")
+
+            combination = self.gdopEvaluation(fData)
+            signals = self.getSimulatedSignals(combination)
+
+            print(signals)
 
             self.step()
             self.stepSatellites()
             self.passedTime += Global.deltaT
 
+    def getSimulatedSignals(self, comb):
+        signalDataSet = []
+        for sat in comb:
+            noise = self.getSatelliteSpecificNoise(sat[1])
+            realDist = self.getRealDistance(sat[0])
+            estimatedDist = realDist + noise
+            signalDataSet.append([sat[0], estimatedDist])
+        return signalDataSet
+    
+    def getRealDistance(self, coords):
+        rx = self.truePosition.getAsCartesianCoords().x
+        ry = self.truePosition.getAsCartesianCoords().y  
+        rz = self.truePosition.getAsCartesianCoords().z   
+        sx = coords.x
+        sy = coords.y
+        sz = coords.z
+        p1 = np.array([rx, ry, rz])
+        p2 = np.array([sx, sy, sz])
+        return np.linalg.norm(p1 - p2)
+
     def gdopEvaluation(self, fData):
-        #{
-            #teste 4 elementige
-            #teste 5 elementige
-            #teste 6 elementige
-            #teste 7 elementige
-        #}
-        pass
+        bestSatellitePositions = [[], float('inf')]
+        for r in range(4, 8):
+            for combination in itertools.combinations(fData, r):
+                matrix = self.getGeometryMatrix(combination)
+                gdop = self.getGDOP(matrix)
+                if gdop < bestSatellitePositions[1]:
+                    bestSatellitePositions = [combination, gdop]
+        if bestSatellitePositions[1] > 100:
+            raise Exception("Bad Data")
+        
+        return bestSatellitePositions[0]
+
+
+    def getGDOP(self, matrix):
+        matrix = np.array(matrix)
+        Q = np.linalg.pinv(matrix.T @ matrix) 
+        gdop = np.sqrt(np.trace(Q)) / 1000
+        return gdop
 
     def getGeometryMatrix(self, dataSet):
         matrix = []
 
-        receiverX = self.truePosition.getAsCartesianCoords().x  
-        receiverY = self.truePosition.getAsCartesianCoords().y   
-        receiverZ = self.truePosition.getAsCartesianCoords().z   
+        receiverX = self.truePosition.getAsCartesianCoords().x 
+        receiverY = self.truePosition.getAsCartesianCoords().y 
+        receiverZ = self.truePosition.getAsCartesianCoords().z
 
         for d in dataSet:
             rho = math.sqrt( (d[0].x - receiverX)**2 + (d[0].y - receiverY)**2 + (d[0].z - receiverZ)**2 )
@@ -119,7 +156,7 @@ class Receiver:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
 
-    def getSatelliteSpecificNoise(self):
+    def getSatelliteSpecificNoise(self, angle):
        return np.random.normal(0, Global.sigmaI) + np.random.normal(0, Global.sigmaS) + np.random.normal(0, Global.sigmaU) + np.random.normal(0, Global.sigmaM) \
        + np.random.normal(0, Global.sigmaT) + np.random.normal(0, Global.sigmaR)
 
