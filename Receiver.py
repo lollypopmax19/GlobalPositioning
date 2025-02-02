@@ -5,10 +5,13 @@ from CartesianCoords import CartesianCoords
 from geopy.distance import geodesic
 from geopy.point import Point  #karney formelas
 import Global
+import Satellite
 
 class Receiver:
     counter = 0
     distance = 0
+
+    satellites = []
 
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0,0)
@@ -21,6 +24,9 @@ class Receiver:
         lamda = random.uniform(-180, 180)
         self.truePosition.phi = phi
         self.truePosition.lamda = lamda
+
+    def run(self):
+        pass
 
     def step(self):
         destination = 0
@@ -42,4 +48,6 @@ class Receiver:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
         
+    def registerSatellite(self, sat : Satellite):
+        self.satellites.append(sat)
 
