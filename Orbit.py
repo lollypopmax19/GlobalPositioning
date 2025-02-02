@@ -16,7 +16,7 @@ class Orbit:
         return [self.a, self.e, self.i, self.bigOmega, self.smallOmega, self.theta]
 
     def updateKeplers(self):
-        self.theta += self.getThetaDot(Global.deltaT)
+        self.theta += self.getThetaDot() * Global.deltaT
 
     def getThetaDot(self):
         return self.h / math.pow( self.getRadius() , 2)
