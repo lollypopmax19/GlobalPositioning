@@ -4,9 +4,11 @@ from GeodeticCoords import GeodeticCoords
 from CartesianCoords import CartesianCoords
 from geopy.distance import geodesic
 from geopy.point import Point  #karney formelas
+import Global
 
 class Receiver:
     counter = 0
+    distance = 0
 
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0,0)
@@ -35,5 +37,9 @@ class Receiver:
         point1 = geodesic(kilometers=self.velocity/1000.0 * Global.deltaT).destination(point0, destination)
         self.truePosition.phi = point1.latitude
         self.truePosition.lamda = point1.longitude
-        self.counter  = (self.counter + 1) % 4
+        self.distance = (self.distance + self.velocity * Global.deltaT)
+        if self.distance > 50:
+            self.counter  = (self.counter + 1) % 4
+            self.distance = 0
+        
 
