@@ -10,6 +10,7 @@ import Satellite
 class Receiver:
     counter = 0
     distance = 0
+    passedTime = 0.0
 
     satellites = []
 
@@ -26,7 +27,18 @@ class Receiver:
         self.truePosition.lamda = lamda
 
     def run(self):
-        pass
+        while self.passedTime < Global.evaluationTime:
+            #{
+                #get satellites coords
+                #calculate satellites angle
+                #select possible satellites
+                #gdop evalutation
+                #calc satellite specific noise
+                #estimate position with satellites {iterative least square}
+                #filtering : kalman small gdop and particle for huge gdop
+                #updating self.estimatedPosition
+            #}
+            self.passedTime += Global.deltaT
 
     def step(self):
         destination = 0
@@ -47,6 +59,10 @@ class Receiver:
         if self.distance > 50:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
+
+    def getSatelliteSpecificNoise(self):
+       return np.random.normal(0, Global.sigmaI) + np.random.normal(0, Global.sigmaS) + np.random.normal(0, Global.sigmaU) + np.random.normal(0, Global.sigmaM) \
+       + np.random.normal(0, Global.sigmaT) + np.random.normal(0, Global.sigmaR)
         
     def registerSatellite(self, sat : Satellite):
         self.satellites.append(sat)
