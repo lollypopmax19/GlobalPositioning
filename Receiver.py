@@ -77,12 +77,12 @@ class Receiver:
         for sat in comb:
             noise = self.getSatelliteSpecificNoise(sat[1])
             realDist = self.getRealDistance(sat[0])
-            estimatedDist = realDist + 0.1* noise
+            estimatedDist = realDist +  noise
             signalDataSet.append([sat[0], estimatedDist])
         return signalDataSet
 
 
-    def trilateration_3d(self, satellites, distances, max_iter=20000, tol=1e-12):
+    def trilateration_3d(self, satellites, distances, max_iter=100000, tol=1e-6):
         satellites = np.asarray(satellites)
         distances = np.asarray(distances)
 
@@ -127,7 +127,7 @@ class Receiver:
 
     def gdopEvaluation(self, fData):
         bestSatellitePositions = [[], float('inf')]
-        for r in range(6, 8):
+        for r in range(4, 8):
             for combination in itertools.combinations(fData, r):
                 matrix = self.getGeometryMatrix(combination)
                 gdop = self.getGDOP(matrix)
@@ -138,11 +138,11 @@ class Receiver:
         
         return bestSatellitePositions[0]
 
-
     def getGDOP(self, matrix):
         matrix = np.array(matrix)
-        Q = np.linalg.pinv(matrix.T @ matrix) 
-        gdop = np.sqrt(np.trace(Q)) / 1000
+        matrix_3d = matrix[:, :3]
+        Q = np.cov(matrix_3d, rowvar=False)
+        gdop = np.sqrt(np.trace(Q))
         return gdop
 
     def getGeometryMatrix(self, dataSet):
@@ -156,7 +156,6 @@ class Receiver:
             rho = math.sqrt( (d[0].x - receiverX)**2 + (d[0].y - receiverY)**2 + (d[0].z - receiverZ)**2 )
             row = [ (d[0].x - receiverX) / rho , (d[0].y - receiverY) / rho , (d[0].z - receiverZ) / rho, 1]
             matrix.append(row)
-
         return matrix
 
     def filterSatelliteDate(self, sData):
@@ -210,8 +209,11 @@ class Receiver:
             self.distance = 0
 
     def getSatelliteSpecificNoise(self, angle):
-       return np.random.normal(0, Global.sigmaI) + np.random.normal(0, Global.sigmaS) + np.random.normal(0, Global.sigmaU) + np.random.normal(0, Global.sigmaM) \
-       + np.random.normal(0, Global.sigmaT) + np.random.normal(0, Global.sigmaR)
+    #    noise =  np.random.normal(0, Global.sigmaI) + np.random.normal(0, Global.sigmaS) + np.random.normal(0, Global.sigmaU) + np.random.normal(0, Global.sigmaM) \
+    #    + np.random.normal(0, Global.sigmaT) + np.random.normal(0, Global.sigmaR)
+    #    print("noise: " + str(noise))
+    #    return noise
+        return np.random.normal(0, 0.01)
 
     def getNormalVectorAtReceiversPosition(self):
         nx = 2 * self.truePosition.getAsCartesianCoords().x / Global.a_earth **2 
@@ -229,6 +231,7 @@ class Receiver:
         cos_theta = np.clip(dot_product / (norm_v1 * norm_v2), -1.0, 1.0)
         theta = np.degrees(np.arccos(cos_theta))
         return abs(theta)
+
         
     def registerSatellite(self, sat : Satellite):
         self.satellites.append(sat)
