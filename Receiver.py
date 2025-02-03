@@ -36,7 +36,6 @@ class Receiver:
         while self.passedTime < Global.evaluationTime:
             #{
                 #filtering : kalman small gdop and particle for huge gdop
-                #updating self.estimatedPosition
             #}
             sData = self.getSatellitesData()
             fData = self.filterSatelliteDate(sData)

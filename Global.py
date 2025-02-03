@@ -4,7 +4,7 @@ a_earth = 6378137.0
 b_earth = 6356752.3 
 
 deltaT = 0.2
-evaluationTime = 10 #[s]
+evaluationTime = 100 #[s]
 
 ionosPart = 0.4167
 gps_sigma = 3.6

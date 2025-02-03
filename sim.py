@@ -71,7 +71,9 @@ def sim():
 
     r.run()
     sigma = t.calcDeviation()
-    return sigma
+    estimatedDist = t.calcEstimatedDistance()
+    t.visualize()
+    return estimatedDist
 
 if __name__ == "__main__":
     result = sim()
