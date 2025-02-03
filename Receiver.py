@@ -12,7 +12,6 @@ import math
 import itertools
 from pyproj import Proj, Transformer
 
-
 class Receiver:
     counter = 0
     distance = 0
@@ -90,56 +89,43 @@ class Receiver:
             signalDataSet.append([sat[0], estimatedDist])
         return signalDataSet
 
-
     def trilateration_3d(self, satellites, distances, weights, max_iter=100000, tol=1e-6):
         satellites = np.asarray(satellites)
         distances = np.asarray(distances)
         weights = np.asarray(weights)
-
         if len(satellites) < 4:
             raise ValueError("At least 4 satellites are required")
-
         mean_cartesian = np.array([
             self.truePosition.getAsCartesianCoords().x,
             self.truePosition.getAsCartesianCoords().y,
             self.truePosition.getAsCartesianCoords().z
         ])
-
         transformer = Transformer.from_crs("EPSG:4978", "EPSG:4326", always_xy=True)
         lon, lat, _ = transformer.transform(mean_cartesian[0], mean_cartesian[1], mean_cartesian[2])
-
         transformer_back = Transformer.from_crs("EPSG:4326", "EPSG:4978", always_xy=True)
         receiver = np.array(transformer_back.transform(lon, lat, 0))
-
         if weights.ndim == 1:
             W = np.diag(weights) 
         else:
             W = weights
-
         if W.shape != (len(satellites), len(satellites)):
             raise ValueError("Weight matrix must be square and match the number of satellites")
-
         for _ in range(max_iter):
             R_i = np.linalg.norm(satellites - receiver, axis=1)
             residuals = distances - R_i
-
             H = np.zeros((len(satellites), 3))
             for i in range(len(satellites)):
                 if R_i[i] < 1e-6:
                     raise ValueError(f"Numerical issues can occur")
                 H[i, :] = (receiver - satellites[i]) / R_i[i]
-
             Ht_W = H.T @ W
             delta = np.linalg.inv(Ht_W @ H) @ (Ht_W @ residuals)
-
             receiver += delta
             if np.linalg.norm(delta) < tol:
                 break
         else:
             print("Max Iterations reached!")
-
         return receiver
-
 
     def getRealDistance(self, coords):
         rx = self.truePosition.getAsCartesianCoords().x
@@ -162,7 +148,6 @@ class Receiver:
                     bestSatellitePositions = [combination, gdop]
         if bestSatellitePositions[1] > 100:
             raise Exception("Bad Data")
-
         return bestSatellitePositions[0]
 
     def getGDOP(self, matrix):
