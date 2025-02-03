@@ -1,4 +1,6 @@
 import Global
+import math 
+import numpy as np
 
 class Tracker:
     _receiver = None
@@ -17,10 +19,19 @@ class Tracker:
         self._estimatedCache.append(self._receiver.estimatedPosition)
 
     def calcDeviation(self):
-        pass
+        sum = 0
+        for entry in range(len(self._truePositionCache)):
+            err = self.calcError(entry)
+            err = err ** 2
+            sum += err
+        nSum = sum / len(self._truePositionCache)
+        return math.sqrt(nSum)
 
-    def calcError(self):
-        pass
+    def calcError(self, entry):
+        true = np.array([self._truePositionCache[entry][0], self._truePositionCache[entry][1], self._truePositionCache[entry][2]])
+        est = np.array([self._estimatedCache[entry][0], self._estimatedCache[entry][1], self._estimatedCache[entry][2]])
+        error = np.linalg.norm(true - est)
+        return error
 
     def calcEstimatedDistance(self):
         pass

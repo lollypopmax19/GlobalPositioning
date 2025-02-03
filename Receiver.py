@@ -1,4 +1,3 @@
-
 import random
 from GeodeticCoords import GeodeticCoords
 from CartesianCoords import CartesianCoords
@@ -55,11 +54,6 @@ class Receiver:
             weightMatrix = self.getWeightMatrix(satAngleArray)
 
             self.estimatedPosition = self.trilateration_3d(satPositionArary, satDistanceArray, weightMatrix)
-            # print("Estimated: " + str(self.estimatedPosition))
-            # self.truePosition.getAsCartesianCoords().print()
-            # arr = np.array([self.truePosition.getAsCartesianCoords().x, self.truePosition.getAsCartesianCoords().y, self.truePosition.getAsCartesianCoords().z])
-            # error = np.linalg.norm(self.estimatedPosition - arr)
-            # print(error)
             self.updateTracker()
             self.step()
             self.stepSatellites()
@@ -92,12 +86,12 @@ class Receiver:
             signalDataSet.append([sat[0], estimatedDist])
         return signalDataSet
 
-    def trilateration_3d(self, satellites, distances, weights, max_iter=100000, tol=1e-6):
+    def trilateration_3d(self, satellites, distances, weights, max_iter=1000, tol=1e-6):
         satellites = np.asarray(satellites)
         distances = np.asarray(distances)
         weights = np.asarray(weights)
         if len(satellites) < 4:
-            raise ValueError("At least 4 satellites are required")
+            raise  Exception("At least 4 satellites are required")
         mean_cartesian = np.array([
             self.truePosition.getAsCartesianCoords().x,
             self.truePosition.getAsCartesianCoords().y,
@@ -112,14 +106,14 @@ class Receiver:
         else:
             W = weights
         if W.shape != (len(satellites), len(satellites)):
-            raise ValueError("Weight matrix must be square and match the number of satellites")
+            raise  Exception("Weight matrix must be square and match the number of satellites")
         for _ in range(max_iter):
             R_i = np.linalg.norm(satellites - receiver, axis=1)
             residuals = distances - R_i
             H = np.zeros((len(satellites), 3))
             for i in range(len(satellites)):
                 if R_i[i] < 1e-6:
-                    raise ValueError(f"Numerical issues can occur")
+                    raise Exception(f"Numerical issues can occur")
                 H[i, :] = (receiver - satellites[i]) / R_i[i]
             Ht_W = H.T @ W
             delta = np.linalg.inv(Ht_W @ H) @ (Ht_W @ residuals)
@@ -127,7 +121,7 @@ class Receiver:
             if np.linalg.norm(delta) < tol:
                 break
         else:
-            print("Max Iterations reached!")
+            raise Exception("Max Iterations reached!")
         return receiver
 
     def getRealDistance(self, coords):
@@ -264,4 +258,3 @@ class Receiver:
     def updateTracker(self):
         if self.tracker != None:
             self.tracker.updateView()
-
