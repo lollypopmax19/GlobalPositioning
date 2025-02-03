@@ -1,6 +1,7 @@
 from Orbit import Orbit
 from Satellite import Satellite
 from Receiver import Receiver
+from Tracker import Tracker
 import math
 
 o1a = Orbit(20000000, 0.01, math.radians(55), math.radians(0), math.radians(90), math.radians(0))
@@ -63,5 +64,8 @@ s6a = Satellite(o6a,r)
 s6b = Satellite(o6b,r)
 s6c = Satellite(o6c,r)
 s6d = Satellite(o6d,r)
+
+
+t = Tracker(r)
 
 r.run()

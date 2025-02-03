@@ -11,13 +11,15 @@ import Satellite
 import math
 import itertools
 from pyproj import Proj, Transformer
+from Ionosphere import Ionosphere
+from Tracker import Tracker 
 
 class Receiver:
     counter = 0
     distance = 0
     passedTime = 0.0
-
     satellites = []
+    tracker = None
 
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0,0)
@@ -53,11 +55,12 @@ class Receiver:
             weightMatrix = self.getWeightMatrix(satAngleArray)
 
             self.estimatedPosition = self.trilateration_3d(satPositionArary, satDistanceArray, weightMatrix)
-            print("Estimated: " + str(self.estimatedPosition))
-            self.truePosition.getAsCartesianCoords().print()
-            arr = np.array([self.truePosition.getAsCartesianCoords().x, self.truePosition.getAsCartesianCoords().y, self.truePosition.getAsCartesianCoords().z])
-            error = np.linalg.norm(self.estimatedPosition - arr)
-            print(error)
+            # print("Estimated: " + str(self.estimatedPosition))
+            # self.truePosition.getAsCartesianCoords().print()
+            # arr = np.array([self.truePosition.getAsCartesianCoords().x, self.truePosition.getAsCartesianCoords().y, self.truePosition.getAsCartesianCoords().z])
+            # error = np.linalg.norm(self.estimatedPosition - arr)
+            # print(error)
+            self.updateTracker()
             self.step()
             self.stepSatellites()
             self.passedTime += Global.deltaT
@@ -221,11 +224,9 @@ class Receiver:
             self.distance = 0
 
     def getSatelliteSpecificNoise(self, angle):
-    #    noise =  np.random.normal(0, Global.sigmaI) + np.random.normal(0, Global.sigmaS) + np.random.normal(0, Global.sigmaU) + np.random.normal(0, Global.sigmaM) \
-    #    + np.random.normal(0, Global.sigmaT) + np.random.normal(0, Global.sigmaR)
-    #    print("noise: " + str(noise))
-    #    return noise
-        return np.random.normal(0, 0.01)
+        muliplier = Ionosphere.getReference(angle)
+        p = 0.01
+        return np.random.normal(0, p * muliplier)
 
     def getNormalVectorAtReceiversPosition(self):
         nx = 2 * self.truePosition.getAsCartesianCoords().x / Global.a_earth **2 
@@ -256,4 +257,11 @@ class Receiver:
 
     def registerSatellite(self, sat : Satellite):
         self.satellites.append(sat)
+
+    def trackRegister(self, tracker : Tracker):
+        self.tracker = tracker
+
+    def updateTracker(self):
+        if self.tracker != None:
+            self.tracker.updateView()
 

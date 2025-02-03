@@ -6,11 +6,6 @@ b_earth = 6356752.3
 deltaT = 0.2
 evaluationTime = 3600 #[s]
 
-sigmaI = 9.531
-sigmaS = 4.765
-sigmaU = 3.812
-sigmaM = 1.9062
-sigmaT = 0.9531
-sigmaR = 1.9062
-
+ionosPart = 0.4167
+gps_sigma = 3.6
 
