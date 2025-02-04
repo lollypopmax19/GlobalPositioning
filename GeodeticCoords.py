@@ -4,10 +4,13 @@ import math
 import Global
 
 class GeodeticCoords:
-    def __init__(self, phi, lamda):
+    def __init__(self, phi, lamda, n = None):
         self.phi = phi
         self.lamda = lamda 
-        self.n = self.getN() 
+        if n == None:
+            self.n = self.getN() 
+        else:
+            self.n = n
 
     def getAsCartesianCoords(self):
         return CartesianCoords(

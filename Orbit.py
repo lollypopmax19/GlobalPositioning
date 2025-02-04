@@ -1,6 +1,7 @@
 import math 
 import Global
 from CartesianCoords import CartesianCoords
+from GeodeticCoords import GeodeticCoords
 
 class Orbit:
     def __init__(self, a, e, i, bigOmega, smallOmega, theta):
@@ -16,6 +17,7 @@ class Orbit:
         return [self.a, self.e, self.i, self.bigOmega, self.smallOmega, self.theta]
 
     def updateKeplers(self):
+        self.bigOmega += (math.radians(360) / 86400) * Global.deltaT
         self.theta += self.getThetaDot() * Global.deltaT
 
     def getThetaDot(self):

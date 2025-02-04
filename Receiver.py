@@ -35,6 +35,7 @@ class Receiver:
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0, 0)
         self.estimatedPosition = CartesianCoords(0, 0, 0)
+        
         self.gdop = 0
         self.spawn()
         self.velocity = velocity
@@ -159,7 +160,7 @@ class Receiver:
 
     def gdopEvaluation(self, fData):
         bestSatellitePositions = [[], float('inf')]
-        for r in range(8, 9):
+        for r in range(4, 9):
             for combination in itertools.combinations(fData, r):
                 matrix = self.getGeometryMatrix(combination)
                 gdop = self.getGDOP(matrix)
@@ -239,6 +240,7 @@ class Receiver:
         if self.distance > 50:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
+
 
     def getSatelliteSpecificNoise(self, angle):
         muliplier = Ionosphere.getReference(angle)

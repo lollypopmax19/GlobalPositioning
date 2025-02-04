@@ -3,6 +3,7 @@ from Satellite import Satellite
 from Receiver import Receiver
 from Tracker import Tracker
 import math
+import Global
 
 def sim():
     o1a = Orbit(20000000, 0.01, math.radians(55), math.radians(0), math.radians(90), math.radians(0))
@@ -35,7 +36,7 @@ def sim():
     o6c = Orbit(20000000, 0.01, math.radians(55), math.radians(300), math.radians(90), math.radians(180))
     o6d = Orbit(20000000, 0.01, math.radians(55), math.radians(300), math.radians(90), math.radians(270))
 
-    r = Receiver(3.3)
+    r = Receiver(Global.velocity)
     s1a = Satellite(o1a,r)
     s1b = Satellite(o1b,r)
     s1c = Satellite(o1c,r)
@@ -65,7 +66,6 @@ def sim():
     s6b = Satellite(o6b,r)
     s6c = Satellite(o6c,r)
     s6d = Satellite(o6d,r)
-
 
     t = Tracker(r)
 

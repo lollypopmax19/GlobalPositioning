@@ -61,7 +61,7 @@ def sim():
     o8e = Orbit(20000000, 0.01, math.radians(60), math.radians(315), math.radians(90), math.radians(240))
     o8f = Orbit(20000000, 0.01, math.radians(60), math.radians(315), math.radians(90), math.radians(300))
 
-    r = Receiver(3.3)
+    r = Receiver(Global.velocity)
     s1a = Satellite(o1a,r)
     s1b = Satellite(o1b,r)
     s1c = Satellite(o1c,r)
