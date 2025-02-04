@@ -9,6 +9,7 @@ class Tracker:
     _receiver = None
     _truePositionCache = []
     _estimatedCache = []
+    _gdopCache = []
 
     def __init__(self, receiver):
         if receiver == None:
@@ -20,6 +21,7 @@ class Tracker:
         self._truePositionCache.append([self._receiver.truePosition.getAsCartesianCoords().x , self._receiver.truePosition.getAsCartesianCoords().y, \
         self._receiver.truePosition.getAsCartesianCoords().z])
         self._estimatedCache.append(self._receiver.estimatedPosition)
+        self._gdopCache.append(self._receiver.gdop)
 
     def calcDeviation(self):
         sum = 0
@@ -47,6 +49,9 @@ class Tracker:
             distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
             length += distance
         return length
+
+    def averageUsedGdop(self):
+        return sum(self._gdopCache) / len(self._gdopCache)
 
     def visualize(self):
         self.plot3dPolylines(self._truePositionCache, self._estimatedCache)

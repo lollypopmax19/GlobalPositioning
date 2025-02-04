@@ -3,7 +3,7 @@ from GeodeticCoords import GeodeticCoords
 from CartesianCoords import CartesianCoords
 from geopy.distance import geodesic
 import Satellite
-from geopy.point import Point  #karney formelas
+from geopy.point import Point  # karney formelas
 import numpy as np
 import Global
 import Satellite
@@ -11,7 +11,19 @@ import math
 import itertools
 from pyproj import Proj, Transformer
 from Ionosphere import Ionosphere
-from Tracker import Tracker 
+from Tracker import Tracker
+
+class KalmanFilter:
+    def predict(self):
+        self.x = np.dot(self.F, self.x)
+        self.P = np.dot(np.dot(self.F, self.P), self.F.T) + self.Q
+
+    def update(self, z):
+        y = z - np.dot(self.H, self.x)
+        S = np.dot(self.H, np.dot(self.P, self.H.T)) + self.R
+        K = np.dot(np.dot(self.P, self.H.T), np.linalg.inv(S))
+        self.x += np.dot(K, y)
+        self.P = np.dot(np.eye(len(self.P)) - np.dot(K, self.H), self.P)
 
 class Receiver:
     counter = 0
@@ -21,42 +33,30 @@ class Receiver:
     tracker = None
 
     def __init__(self, velocity):
-        self.truePosition = GeodeticCoords(0,0)
-        self.estimatedPosition = CartesianCoords(0,0,0)
+        self.truePosition = GeodeticCoords(0, 0)
+        self.estimatedPosition = CartesianCoords(0, 0, 0)
+        self.gdop = 0
         self.spawn()
         self.velocity = velocity
+        self.init_kalman_filter()
+
+    def init_kalman_filter(self):
+        dim_x = 3 
+        dim_z = 3 
+        self.kf = KalmanFilter()
+        cart = self.truePosition.getAsCartesianCoords()
+        self.kf.x = np.array([[cart.x], [cart.y], [cart.z]])
+        self.kf.P = np.eye(dim_x) * 10
+        self.kf.F = np.eye(dim_x)
+        self.kf.H = np.eye(dim_z, dim_x)
+        self.kf.R = np.eye(dim_z) * 10
+        self.kf.Q = np.eye(dim_x)
 
     def spawn(self):
         phi = random.uniform(-90 + 23.5, 90 - 23.5)
         lamda = random.uniform(-180, 180)
         self.truePosition.phi = phi
         self.truePosition.lamda = lamda
-
-    def run(self):
-        while self.passedTime < Global.evaluationTime:
-            #{
-                #filtering : kalman small gdop and particle for huge gdop
-            #}
-            sData = self.getSatellitesData()
-            fData = self.filterSatelliteDate(sData)
-
-            if len(fData)<4:
-                raise Exception("Bad Data")
-
-            combination = self.gdopEvaluation(fData)
-            signals = self.getSimulatedSignals(combination)
-
-            satPositionArary = self.extractSatPositionArray(signals)
-            satDistanceArray = self.extractSatDistanceArray(signals)
-            satAngleArray = self.extractSatAngleArray(combination)
-
-            weightMatrix = self.getWeightMatrix(satAngleArray)
-
-            self.estimatedPosition = self.trilateration_3d(satPositionArary, satDistanceArray, weightMatrix)
-            self.updateTracker()
-            self.step()
-            self.stepSatellites()
-            self.passedTime += Global.deltaT
 
     def extractSatAngleArray(self, satData):
         array = []
@@ -85,43 +85,66 @@ class Receiver:
             signalDataSet.append([sat[0], estimatedDist])
         return signalDataSet
 
+    def run(self):
+        while self.passedTime < Global.evaluationTime:
+            sData = self.getSatellitesData()
+            fData = self.filterSatelliteDate(sData)
+
+            if len(fData)<4:
+                raise Exception("Bad Data")
+
+            combination = self.gdopEvaluation(fData)
+            signals = self.getSimulatedSignals(combination)
+
+            satPositionArary = self.extractSatPositionArray(signals)
+            satDistanceArray = self.extractSatDistanceArray(signals)
+            satAngleArray = self.extractSatAngleArray(combination)
+
+            weightMatrix = self.getWeightMatrix(satAngleArray)
+
+            self.estimatedPosition = self.trilateration_3d(satPositionArary, satDistanceArray, weightMatrix)
+            self.updateTracker()
+            self.step()
+            self.stepSatellites()
+            self.passedTime += Global.deltaT
+
     def trilateration_3d(self, satellites, distances, weights, max_iter=1000, tol=1e-6):
         satellites = np.asarray(satellites)
         distances = np.asarray(distances)
         weights = np.asarray(weights)
         if len(satellites) < 4:
-            raise  Exception("At least 4 satellites are required")
-        mean_cartesian = np.array([
+            raise Exception("At least 4 satellites are required")
+
+        receiver = np.array([
             self.truePosition.getAsCartesianCoords().x,
             self.truePosition.getAsCartesianCoords().y,
             self.truePosition.getAsCartesianCoords().z
         ])
-        transformer = Transformer.from_crs("EPSG:4978", "EPSG:4326", always_xy=True)
-        lon, lat, _ = transformer.transform(mean_cartesian[0], mean_cartesian[1], mean_cartesian[2])
-        transformer_back = Transformer.from_crs("EPSG:4326", "EPSG:4978", always_xy=True)
-        receiver = np.array(transformer_back.transform(lon, lat, 0))
+
         if weights.ndim == 1:
-            W = np.diag(weights) 
+            W = np.diag(weights)
         else:
             W = weights
-        if W.shape != (len(satellites), len(satellites)):
-            raise  Exception("Weight matrix must be square and match the number of satellites")
+
         for _ in range(max_iter):
             R_i = np.linalg.norm(satellites - receiver, axis=1)
             residuals = distances - R_i
             H = np.zeros((len(satellites), 3))
             for i in range(len(satellites)):
-                if R_i[i] < 1e-6:
-                    raise Exception(f"Numerical issues can occur")
                 H[i, :] = (receiver - satellites[i]) / R_i[i]
             Ht_W = H.T @ W
-            delta = np.linalg.inv(Ht_W @ H) @ (Ht_W @ residuals)
+
+            delta = np.linalg.pinv(Ht_W @ H) @ (Ht_W @ residuals)
+
             receiver += delta
             if np.linalg.norm(delta) < tol:
                 break
-        else:
-            raise Exception("Max Iterations reached!")
-        return receiver
+
+        self.kf.predict()
+        self.kf.update(receiver.reshape(-1, 1))
+        receiver_filtered = self.kf.x.flatten()
+
+        return receiver_filtered
 
     def getRealDistance(self, coords):
         rx = self.truePosition.getAsCartesianCoords().x
@@ -136,7 +159,7 @@ class Receiver:
 
     def gdopEvaluation(self, fData):
         bestSatellitePositions = [[], float('inf')]
-        for r in range(4, 8):
+        for r in range(8, 9):
             for combination in itertools.combinations(fData, r):
                 matrix = self.getGeometryMatrix(combination)
                 gdop = self.getGDOP(matrix)
@@ -144,6 +167,7 @@ class Receiver:
                     bestSatellitePositions = [combination, gdop]
         if bestSatellitePositions[1] > 100:
             raise Exception("Bad Data")
+        self.gdop = bestSatellitePositions[1]
         return bestSatellitePositions[0]
 
     def getGDOP(self, matrix):

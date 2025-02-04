@@ -72,6 +72,7 @@ def sim():
     r.run()
     sigma = t.calcDeviation()
     estimatedDist = t.calcEstimatedDistance()
+    print(t.averageUsedGdop())
     t.visualize()
     return estimatedDist
 
