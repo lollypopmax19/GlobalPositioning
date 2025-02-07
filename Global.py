@@ -11,3 +11,5 @@ velocity = 2.778 #2.778m/s = 10km/h     5,556m/s = 20km/h       8,333m/s = 30km/
 ionosPart = 0.4167
 gps_sigma = 3.6
 
+PathMode = 1
+

@@ -35,6 +35,7 @@ class Receiver:
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0, 0)
         self.estimatedPosition = CartesianCoords(0, 0, 0)
+        self.estimatedPositionWithoutKalman = CartesianCoords(0,0,0)
         
         self.gdop = 0
         self.spawn()
@@ -141,6 +142,8 @@ class Receiver:
             if np.linalg.norm(delta) < tol:
                 break
 
+        self.estimatedPositionWithoutKalman = receiver
+
         self.kf.predict()
         self.kf.update(receiver.reshape(-1, 1))
         receiver_filtered = self.kf.x.flatten()
@@ -222,6 +225,7 @@ class Receiver:
         for s in self.satellites:
             s.updatePosition()
 
+    # Sinus Kurve Bewegung
     def step(self):
         cos_t = math.cos(self.passedTime/50 * 2 * math.pi) 
         directionAngle = abs(math.degrees(math.atan(cos_t)) - 90)
@@ -233,6 +237,7 @@ class Receiver:
         if self.distance > 50:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
+
 
     # Gerade Bewegung
     # def step(self):
@@ -254,6 +259,7 @@ class Receiver:
     #     if self.distance > 50:
     #         self.counter  = (self.counter + 1) % 4
     #         self.distance = 0
+    
     # Kreis Bewegung
     # def step(self):
     #     radius = 50  # Radius der Kurve in Metern
