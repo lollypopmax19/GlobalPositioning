@@ -160,7 +160,7 @@ class Receiver:
 
     def gdopEvaluation(self, fData):
         bestSatellitePositions = [[], float('inf')]
-        for r in range(4, 9):
+        for r in range(8, 9):
             for combination in itertools.combinations(fData, r):
                 matrix = self.getGeometryMatrix(combination)
                 gdop = self.getGDOP(matrix)
@@ -169,6 +169,7 @@ class Receiver:
         if bestSatellitePositions[1] > 100:
             raise Exception("Bad Data")
         self.gdop = bestSatellitePositions[1]
+        print(f"Used Satellites: {len(bestSatellitePositions[0])}")
         return bestSatellitePositions[0]
 
     def getGDOP(self, matrix):
@@ -222,24 +223,52 @@ class Receiver:
             s.updatePosition()
 
     def step(self):
-        destination = 0
-        if self.counter == 0:
-            destination = 180
-        elif self.counter == 1:
-            destination = 90
-        elif self.counter == 2:
-            destination = 0
-        else:
-            destination = 90
-
+        cos_t = math.cos(self.passedTime/50 * 2 * math.pi) 
+        directionAngle = abs(math.degrees(math.atan(cos_t)) - 90)
         point0 = Point(self.truePosition.phi, self.truePosition.lamda)
-        point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, destination)
+        point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, directionAngle)
         self.truePosition.phi = point1.latitude
         self.truePosition.lamda = point1.longitude
         self.distance = (self.distance + self.velocity * Global.deltaT)
         if self.distance > 50:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
+
+    # Gerade Bewegung
+    # def step(self):
+    #     destination = 0
+    #     if self.counter == 0:
+    #         destination = 180
+    #     elif self.counter == 1:
+    #         destination = 90
+    #     elif self.counter == 2:
+    #         destination = 0
+    #     else:
+    #         destination = 90
+
+    #     point0 = Point(self.truePosition.phi, self.truePosition.lamda)
+    #     point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, destination)
+    #     self.truePosition.phi = point1.latitude
+    #     self.truePosition.lamda = point1.longitude
+    #     self.distance = (self.distance + self.velocity * Global.deltaT)
+    #     if self.distance > 50:
+    #         self.counter  = (self.counter + 1) % 4
+    #         self.distance = 0
+    # Kreis Bewegung
+    # def step(self):
+    #     radius = 50  # Radius der Kurve in Metern
+    #     angular_speed = 10  # Grad pro Schritt
+
+    #     self.counter += angular_speed
+    #     if self.counter >= 360:
+    #         self.counter = 0  # Zurücksetzen nach einer vollen Runde
+
+    #     new_phi = self.truePosition.phi + (radius / 111320) * math.cos(math.radians(self.counter))
+    #     new_lambda = self.truePosition.lamda + (radius / (111320 * math.cos(math.radians(self.truePosition.phi)))) * math.sin(math.radians(self.counter))
+
+    #     self.truePosition.phi = new_phi
+    #     self.truePosition.lamda = new_lambda
+
 
 
     def getSatelliteSpecificNoise(self, angle):

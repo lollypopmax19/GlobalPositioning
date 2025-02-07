@@ -2,6 +2,7 @@ from Orbit import Orbit
 from Satellite import Satellite
 from Receiver import Receiver
 from Tracker import Tracker
+import Global
 import math
 
 def sim():
@@ -123,7 +124,8 @@ def sim():
     r.run()
     sigma = t.calcDeviation()
     estimatedDist = t.calcEstimatedDistance()
-    t.visualize()
+    #t.visualize()  Zur Visualisierung des Weges
+    print(t.averageUsedGdop())
     return estimatedDist
 
 if __name__ == "__main__":

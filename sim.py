@@ -73,7 +73,7 @@ def sim():
     sigma = t.calcDeviation()
     estimatedDist = t.calcEstimatedDistance()
     print(t.averageUsedGdop())
-    t.visualize()
+    #t.visualize() #Zur Visualisierung des Weges 
     return estimatedDist
 
 if __name__ == "__main__":
