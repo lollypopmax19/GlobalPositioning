@@ -35,6 +35,7 @@ class Receiver:
     def __init__(self, velocity):
         self.truePosition = GeodeticCoords(0, 0)
         self.estimatedPosition = CartesianCoords(0, 0, 0)
+        self.estimatedPositionWithoutKalman = CartesianCoords(0,0,0)
         
         self.gdop = 0
         self.spawn()
@@ -141,6 +142,8 @@ class Receiver:
             if np.linalg.norm(delta) < tol:
                 break
 
+        self.estimatedPositionWithoutKalman = receiver
+
         self.kf.predict()
         self.kf.update(receiver.reshape(-1, 1))
         receiver_filtered = self.kf.x.flatten()
@@ -222,24 +225,36 @@ class Receiver:
             s.updatePosition()
 
     def step(self):
-        destination = 0
-        if self.counter == 0:
-            destination = 180
-        elif self.counter == 1:
-            destination = 90
-        elif self.counter == 2:
+        if Global.PathMode == 0:
             destination = 0
-        else:
-            destination = 90
+            if self.counter == 0:
+                destination = 180
+            elif self.counter == 1:
+                destination = 90
+            elif self.counter == 2:
+                destination = 0
+            else:
+                destination = 90
+            point0 = Point(self.truePosition.phi, self.truePosition.lamda)
+            point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, destination)
+            self.truePosition.phi = point1.latitude
+            self.truePosition.lamda = point1.longitude
+            self.distance = (self.distance + self.velocity * Global.deltaT)
+            if self.distance > 50:
+                self.counter  = (self.counter + 1) % 4
+                self.distance = 0
 
-        point0 = Point(self.truePosition.phi, self.truePosition.lamda)
-        point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, destination)
-        self.truePosition.phi = point1.latitude
-        self.truePosition.lamda = point1.longitude
-        self.distance = (self.distance + self.velocity * Global.deltaT)
-        if self.distance > 50:
-            self.counter  = (self.counter + 1) % 4
-            self.distance = 0
+        elif Global.PathMode == 1:
+            cos_t = math.cos(self.passedTime/50.0 * 2 * math.pi)
+            directionAngle = abs(math.degrees(math.atan(cos_t)) - 90)
+            point0 = Point(self.truePosition.phi, self.truePosition.lamda)
+            point1 = geodesic(kilometers=(self.velocity* Global.deltaT)/1000.0 ).destination(point0, directionAngle)
+            self.truePosition.phi = point1.latitude
+            self.truePosition.lamda = point1.longitude
+            self.distance = (self.distance + self.velocity * Global.deltaT)
+            if self.distance > 50:
+                self.counter  = (self.counter + 1) % 4
+                self.distance = 0
 
 
     def getSatelliteSpecificNoise(self, angle):

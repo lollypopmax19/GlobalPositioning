@@ -8,6 +8,7 @@ from mpl_toolkits.mplot3d import Axes3D
 class Tracker:
     _receiver = None
     _truePositionCache = []
+    _estimatedWithoutKalmanCache = []
     _estimatedCache = []
     _gdopCache = []
 
@@ -22,6 +23,7 @@ class Tracker:
         self._receiver.truePosition.getAsCartesianCoords().z])
         self._estimatedCache.append(self._receiver.estimatedPosition)
         self._gdopCache.append(self._receiver.gdop)
+        self._estimatedWithoutKalmanCache.append(self._receiver.estimatedPositionWithoutKalman)
 
     def calcDeviation(self):
         sum = 0
@@ -54,17 +56,21 @@ class Tracker:
         return sum(self._gdopCache) / len(self._gdopCache)
 
     def visualize(self):
-        self.plot3dPolylines(self._truePositionCache, self._estimatedCache)
+        self.plot3dPolylines(self._truePositionCache, self._estimatedCache, self._estimatedWithoutKalmanCache)
 
-    def plot3dPolylines(self, polyline1, polyline2):
+    def plot3dPolylines(self, polyline1, polyline2, polyline3):
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='3d')
         polyline1 = np.array(polyline1)
         x1, y1, z1 = polyline1[:, 0], polyline1[:, 1], polyline1[:, 2]
         polyline2 = np.array(polyline2)
         x2, y2, z2 = polyline2[:, 0], polyline2[:, 1], polyline2[:, 2]
-        ax.plot(x1, y1, z1, label="Polygonzug 1", color="blue", marker="o")
-        ax.plot(x2, y2, z2, label="Polygonzug 2", color="red", marker="s")
+        polyline3 = np.array(polyline3)
+        x3, y3, z3 = polyline3[:, 0], polyline3[:, 1], polyline3[:, 2]
+
+        ax.plot(x1, y1, z1, label="Wahre Strecke", color="blue", marker="o")
+        ax.plot(x2, y2, z2, label="Mit Kalmanfilter", color="red", marker="s")
+        ax.plot(x3, y3, z3, label="Ohne Kalmanfilter", color="green", marker="s")
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("Z")
