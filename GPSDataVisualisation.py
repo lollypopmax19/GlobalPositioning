@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # CSV-Datei laden
-simulation_file = "results/simulation_results-Sinus-10kmh.csv" 
+simulation_file = "results/simulation2_results-Sinus-30kmh-sim2.csv" 
 
 df = pd.read_csv(simulation_file)
 
@@ -38,7 +38,7 @@ plt.subplot(2, 1, 1)
 plt.plot(iterations, actual_distance, label="Tatsächlicher Weg", linestyle='-', marker='o', color='blue')
 plt.plot(iterations, estimated_distance, label="Geschätzter Weg", linestyle='--', marker='s', color='red')
 plt.plot(iterations, geometric_mean_series, label="Geometrisches Mittel", linestyle=':', color='green')
-plt.xlabel("Iteration")
+plt.xlabel("Simulation")
 plt.ylabel("Distanz (m)")
 plt.legend()
 plt.title("Tatsächlicher vs. Geschätzter Weg")
@@ -50,7 +50,7 @@ if len(estimated_distance) > 0:
 # GDOP-Werte
 plt.subplot(2, 1, 2)
 plt.plot(iterations, gdop_values, label="GDOP", linestyle='-', marker='x', color='purple')
-plt.xlabel("Iteration")
+plt.xlabel("Simulation")
 plt.ylabel("GDOP-Wert")
 plt.legend()
 plt.title("GDOP-Werte über Iterationen")

@@ -238,7 +238,6 @@ class Receiver:
             self.counter  = (self.counter + 1) % 4
             self.distance = 0
 
-
     # Gerade Bewegung
     # def step(self):
     #     destination = 0
